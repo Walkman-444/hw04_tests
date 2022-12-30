@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.conf import settings
 from django.test import TestCase, Client
 from ..models import Group, Post
 from django.urls import reverse
