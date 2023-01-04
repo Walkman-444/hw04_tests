@@ -7,6 +7,7 @@ User = get_user_model()
 
 POSTS_COUNT = 15
 
+
 class PostModelTest(TestCase):
     @classmethod
     def setUpClass(cls):

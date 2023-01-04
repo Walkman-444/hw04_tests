@@ -66,7 +66,8 @@ class PostViewsTests(TestCase):
         response = self.client.get(
             reverse('posts:group_list', kwargs={'slug': self.group.slug})
         )
-        expected = list(Post.objects.filter(group_id=self.group.id)[:POSTS_COUNT])
+        expected = list(Post.objects.filter(
+            group_id=self.group.id)[:POSTS_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
 
     def test_profile_show_correct_context(self):
@@ -83,8 +84,10 @@ class PostViewsTests(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': self.post.pk})
         )
         self.assertEqual(response.context.get('post').text, self.post.text)
-        self.assertEqual(response.context.get('post').author.id, self.post.author.pk)
-        self.assertEqual(response.context.get('post').group.id, self.post.group.pk)
+        self.assertEqual(response.context.get('post').author.id,
+                         self.post.author.pk)
+        self.assertEqual(response.context.get('post').group.id,
+                         self.post.group.pk)
 
     def test_create_edit_show_correct_context(self):
         '''Шаблон create_edit сформирован с правильным контекстом.'''
