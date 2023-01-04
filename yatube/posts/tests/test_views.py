@@ -1,17 +1,20 @@
-from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
-from ..models import Group, Post
-from django.urls import reverse
 from django import forms
+from django.contrib.auth import get_user_model
+from django.test import Client, TestCase
+from django.urls import reverse
+
+from ..models import Group, Post
+from ..views import POST_COUNT
 
 User = get_user_model()
+
+POSTS_COUNT = POST_COUNT
 
 
 class PostViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.guest_client = Client()
         cls.user = User.objects.create_user(username='HasNoName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
@@ -55,33 +58,33 @@ class PostViewsTests(TestCase):
     def test_homepage_show_correct_context(self):
         '''Шаблон index сформирован с правильным контекстом.'''
         response = self.authorized_client.get(reverse('posts:index'))
-        expected = list(Post.objects.all()[:10])
+        expected = list(Post.objects.all()[:POSTS_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
 
     def test_group_list_show_correct_context(self):
         '''Шаблон group_list сформирован с правильным контекстом.'''
-        response = self.guest_client.get(
+        response = self.client.get(
             reverse('posts:group_list', kwargs={'slug': self.group.slug})
         )
-        expected = list(Post.objects.filter(group_id=self.group.id)[:10])
+        expected = list(Post.objects.filter(group_id=self.group.id)[:POSTS_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
 
     def test_profile_show_correct_context(self):
         '''Шаблон profile сформирован с правильным контекстом.'''
-        response = self.guest_client.get(
+        response = self.client.get(
             reverse('posts:profile', args={self.user})
         )
-        expected = list(Post.objects.filter(author=self.user)[:10])
+        expected = list(Post.objects.filter(author=self.user)[:POSTS_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
 
     def test_post_detail_show_correct_context(self):
         '''Шаблон post_detail сформирован с правильным контекстом.'''
-        response = self.guest_client.get(
+        response = self.client.get(
             reverse('posts:post_detail', kwargs={'post_id': self.post.pk})
         )
         self.assertEqual(response.context.get('post').text, self.post.text)
-        self.assertEqual(response.context.get('post').author, self.post.author)
-        self.assertEqual(response.context.get('post').group, self.post.group)
+        self.assertEqual(response.context.get('post').author.id, self.post.author.pk)
+        self.assertEqual(response.context.get('post').group.id, self.post.group.pk)
 
     def test_create_edit_show_correct_context(self):
         '''Шаблон create_edit сформирован с правильным контекстом.'''
@@ -149,7 +152,6 @@ class PaginatorViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.guest_client = Client()
         cls.user = User.objects.create_user(username='HasNoName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
@@ -177,11 +179,11 @@ class PaginatorViewsTest(TestCase):
         for name, url in self.paginator_context_names.items():
             with self.subTest(name=name):
                 response = self.client.get(url)
-                self.assertEqual(len(response.context['page_obj']), 10)
+                self.assertEqual(len(response.context[POSTS_COUNT]), 10)
 
     def test_paginator_correct_context_2(self):
         """index, group_list, profile содержат 3 поста на второй странице"""
         for name, url in self.paginator_context_names.items():
             with self.subTest(name=name):
                 response = self.client.get(url + '?page=2')
-                self.assertEqual(len(response.context['page_obj']), 3)
+                self.assertEqual(len(response.context[POSTS_COUNT]), 3)

@@ -5,6 +5,7 @@ from ..models import Group, Post
 
 User = get_user_model()
 
+POSTS_COUNT = 15
 
 class PostModelTest(TestCase):
     @classmethod
@@ -25,7 +26,7 @@ class PostModelTest(TestCase):
         """Проверяем, что у моделей корректно работает __str__."""
         test_post = self.post
         post_str = str(test_post)
-        expected_test_post = test_post.text[:15]
+        expected_test_post = test_post.text[:POSTS_COUNT]
         self.assertEqual(expected_test_post, post_str)
 
         test_group = self.group

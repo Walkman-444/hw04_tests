@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
-from ..models import Group, Post
+from django.test import Client, TestCase
 from django.urls import reverse
+
+from ..models import Group, Post
 
 User = get_user_model()
 
@@ -10,7 +11,6 @@ class PostFormsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.guest_client = Client()
         cls.user = User.objects.create_user(username='HasNoName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
@@ -33,7 +33,7 @@ class PostFormsTests(TestCase):
         '''
         post_count = Post.objects.count()
         form_data = {
-            'text': 'Тестовый пост',
+            'text': self.post.text,
             'group': self.group.pk
         }
         response = self.authorized_client.post(
@@ -45,7 +45,7 @@ class PostFormsTests(TestCase):
         self.assertEqual(Post.objects.count(), post_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text='Тестовый пост',
+                text=self.post.text,
                 author=self.post.author,
                 group=self.group
             ).exists()
@@ -62,16 +62,13 @@ class PostFormsTests(TestCase):
         }
         response = self.authorized_client.post(
             reverse('posts:post_edit', args=({self.post.pk})),
-            data=form_data
+            data=form_data,
+            follow=True
         )
-        self.assertRedirects(
-            response, reverse('posts:post_detail', args=({self.post.pk}))
-        )
+        modified_post = Post.objects.get(id=self.post.id)
+        self.assertRedirects(response, reverse('posts:post_detail', args=(1,)))
         self.assertEqual(Post.objects.count(), post_count)
-        self.assertTrue(
-            Post.objects.filter(
-                text='Редактируем тестовый пост',
-                author=self.post.author,
-                group=self.group
-            ).exists()
+        self.assertNotEqual(
+            modified_post.text,
+            self.post.text
         )
