@@ -9,6 +9,8 @@ from ..views import POST_COUNT
 User = get_user_model()
 
 POSTS_COUNT = POST_COUNT
+FULL_NUMBER_OF_POSTS = 10
+REMAINING_POSTS = 3
 
 
 class PostViewsTests(TestCase):
@@ -182,11 +184,13 @@ class PaginatorViewsTest(TestCase):
         for name, url in self.paginator_context_names.items():
             with self.subTest(name=name):
                 response = self.client.get(url)
-                self.assertEqual(len(response.context[POSTS_COUNT]), 10)
+                self.assertEqual(len(response.context['page_obj']),
+                                 FULL_NUMBER_OF_POSTS)
 
     def test_paginator_correct_context_2(self):
         """index, group_list, profile содержат 3 поста на второй странице"""
         for name, url in self.paginator_context_names.items():
             with self.subTest(name=name):
                 response = self.client.get(url + '?page=2')
-                self.assertEqual(len(response.context[POSTS_COUNT]), 3)
+                self.assertEqual(len(response.context['page_obj']),
+                                 REMAINING_POSTS)
