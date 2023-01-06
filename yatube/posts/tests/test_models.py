@@ -2,10 +2,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from ..models import Group, Post
+from ..models import POSTS_COUNT
 
 User = get_user_model()
-
-POSTS_COUNT = 15
 
 
 class PostModelTest(TestCase):

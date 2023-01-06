@@ -34,7 +34,8 @@ class PostFormsTests(TestCase):
         post_count = Post.objects.count()
         form_data = {
             'text': self.post.text,
-            'group': self.group.pk
+            'group': self.group.pk,
+            'author': self.post.author
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
@@ -45,9 +46,9 @@ class PostFormsTests(TestCase):
         self.assertEqual(Post.objects.count(), post_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text=self.post.text,
-                author=self.post.author,
-                group=self.group
+                text=form_data['text'],
+                author=form_data['author'],
+                group=form_data['group']
             ).exists()
         )
 
@@ -66,9 +67,7 @@ class PostFormsTests(TestCase):
             follow=True
         )
         modified_post = Post.objects.get(id=self.post.id)
-        self.assertRedirects(response, reverse('posts:post_detail', args=(1,)))
+        self.assertRedirects(response, reverse('posts:post_detail', args=({self.post.pk})))
         self.assertEqual(Post.objects.count(), post_count)
-        self.assertNotEqual(
-            modified_post.text,
-            self.post.text
-        )
+        self.assertEqual(modified_post.text, form_data['text'])
+        self.assertEqual(modified_post.group.pk, form_data['group'])

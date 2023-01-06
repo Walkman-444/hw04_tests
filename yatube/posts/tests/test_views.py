@@ -8,7 +8,6 @@ from ..views import POST_COUNT
 
 User = get_user_model()
 
-POSTS_COUNT = POST_COUNT
 FULL_NUMBER_OF_POSTS = 10
 REMAINING_POSTS = 3
 
@@ -33,10 +32,8 @@ class PostViewsTests(TestCase):
         )
         cls.author_client.force_login(cls.post.author)
 
-    # Проверяем используемые шаблоны
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
-        # Собираем в словарь пары "имя_html_шаблона: reverse(name)"
         templates_page_names = {
             reverse('posts:index'): 'posts/index.html',
             reverse('posts:group_list', kwargs={'slug': self.group.slug}):
@@ -49,18 +46,16 @@ class PostViewsTests(TestCase):
             'posts/post_create.html',
             reverse('posts:post_create'): 'posts/post_create.html'
         }
-        # Проверяем, что при обращении к name
-        # вызывается соответствующий HTML-шаблон
+
         for reverse_name, template in templates_page_names.items():
             with self.subTest(template=template):
                 response = self.authorized_client.get(reverse_name)
                 self.assertTemplateUsed(response, template)
 
-    # Проверка словаря контекста главной страницы (в нём передаётся форма)
     def test_homepage_show_correct_context(self):
         '''Шаблон index сформирован с правильным контекстом.'''
         response = self.authorized_client.get(reverse('posts:index'))
-        expected = list(Post.objects.all()[:POSTS_COUNT])
+        expected = list(Post.objects.all()[:POST_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
 
     def test_group_list_show_correct_context(self):
@@ -69,7 +64,7 @@ class PostViewsTests(TestCase):
             reverse('posts:group_list', kwargs={'slug': self.group.slug})
         )
         expected = list(Post.objects.filter(
-            group_id=self.group.id)[:POSTS_COUNT])
+            group_id=self.group.id)[:POST_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
 
     def test_profile_show_correct_context(self):
@@ -77,19 +72,17 @@ class PostViewsTests(TestCase):
         response = self.client.get(
             reverse('posts:profile', args={self.user})
         )
-        expected = list(Post.objects.filter(author=self.user)[:POSTS_COUNT])
+        expected = list(Post.objects.filter(author=self.user)[:POST_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
 
     def test_post_detail_show_correct_context(self):
         '''Шаблон post_detail сформирован с правильным контекстом.'''
+        post = Post.objects.get(pk=1)
         response = self.client.get(
             reverse('posts:post_detail', kwargs={'post_id': self.post.pk})
         )
-        self.assertEqual(response.context.get('post').text, self.post.text)
-        self.assertEqual(response.context.get('post').author.id,
-                         self.post.author.pk)
-        self.assertEqual(response.context.get('post').group.id,
-                         self.post.group.pk)
+        post_from_post_detail = response.context.get('post')
+        self.assertEqual(post_from_post_detail, post)
 
     def test_create_edit_show_correct_context(self):
         '''Шаблон create_edit сформирован с правильным контекстом.'''
@@ -122,11 +115,8 @@ class PostViewsTests(TestCase):
         то этот пост появляется:
         '''
         form_fields = {
-            # на главной странице
             reverse('posts:index'),
-            # на странице выбраной группы
             reverse('posts:group_list', kwargs={'slug': self.group.slug}),
-            # в профиле пользователя
             reverse(
                 'posts:profile', kwargs={'username': self.user}
             ),
