@@ -77,12 +77,10 @@ class PostViewsTests(TestCase):
 
     def test_post_detail_show_correct_context(self):
         '''Шаблон post_detail сформирован с правильным контекстом.'''
-        post = Post.objects.get(pk=1)
         response = self.client.get(
-            reverse('posts:post_detail', kwargs={'post_id': self.post.pk})
-        )
-        post_from_post_detail = response.context.get('post')
-        self.assertEqual(post_from_post_detail, post)
+            reverse('posts:post_detail', kwargs={'post_id': self.post.pk}))
+        expected = response.context['post']
+        self.assertEqual(expected.pk, self.post.pk)
 
     def test_create_edit_show_correct_context(self):
         '''Шаблон create_edit сформирован с правильным контекстом.'''

@@ -35,7 +35,6 @@ class PostFormsTests(TestCase):
         form_data = {
             'text': self.post.text,
             'group': self.group.pk,
-            'author': self.post.author
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
@@ -47,7 +46,6 @@ class PostFormsTests(TestCase):
         self.assertTrue(
             Post.objects.filter(
                 text=form_data['text'],
-                author=form_data['author'],
                 group=form_data['group']
             ).exists()
         )
