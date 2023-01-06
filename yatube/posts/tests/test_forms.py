@@ -67,7 +67,8 @@ class PostFormsTests(TestCase):
             follow=True
         )
         modified_post = Post.objects.get(id=self.post.id)
-        self.assertRedirects(response, reverse('posts:post_detail', args=({self.post.pk})))
+        self.assertRedirects(
+            response, reverse('posts:post_detail', args=({self.post.pk})))
         self.assertEqual(Post.objects.count(), post_count)
         self.assertEqual(modified_post.text, form_data['text'])
         self.assertEqual(modified_post.group.pk, form_data['group'])
