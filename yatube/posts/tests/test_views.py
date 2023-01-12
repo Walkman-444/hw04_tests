@@ -1,15 +1,20 @@
+import shutil
+import tempfile
 from django import forms
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Group, Post, Comment
 from ..views import POST_COUNT
 
 User = get_user_model()
 
 FULL_NUMBER_OF_POSTS = 10
 REMAINING_POSTS = 3
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 class PostViewsTests(TestCase):
@@ -20,6 +25,24 @@ class PostViewsTests(TestCase):
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
         cls.author_client = Client()
+        cls.small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        cls.uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=cls.small_gif,
+            content_type='image/gif'
+        )
+        cls.form_data = {
+            'title': 'Тестовый заголовок',
+            'text': 'Тестовый текст',
+            'image': cls.uploaded,
+        }
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test_slug',
@@ -28,9 +51,20 @@ class PostViewsTests(TestCase):
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый пост',
-            group=cls.group
+            group=cls.group,
+            image=cls.uploaded,
+        )
+        cls.comment = Comment.objects.create(
+            text='Тестовый комментарий',
+            post=cls.post,
+            author=cls.user,
         )
         cls.author_client.force_login(cls.post.author)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -57,6 +91,9 @@ class PostViewsTests(TestCase):
         response = self.authorized_client.get(reverse('posts:index'))
         expected = list(Post.objects.all()[:POST_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
+        expected_2 = response.context['page_obj'][0]
+        image_in_post = expected_2.image
+        self.assertEqual(image_in_post, self.post.image)
 
     def test_group_list_show_correct_context(self):
         '''Шаблон group_list сформирован с правильным контекстом.'''
@@ -66,6 +103,9 @@ class PostViewsTests(TestCase):
         expected = list(Post.objects.filter(
             group_id=self.group.id)[:POST_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
+        expected_2 = response.context['page_obj'][0]
+        image_in_post = expected_2.image
+        self.assertEqual(image_in_post, self.post.image)
 
     def test_profile_show_correct_context(self):
         '''Шаблон profile сформирован с правильным контекстом.'''
@@ -74,6 +114,9 @@ class PostViewsTests(TestCase):
         )
         expected = list(Post.objects.filter(author=self.user)[:POST_COUNT])
         self.assertEqual(list(response.context['page_obj']), expected)
+        expected_2 = response.context['page_obj'][0]
+        image_in_post = expected_2.image
+        self.assertEqual(image_in_post, self.post.image)
 
     def test_post_detail_show_correct_context(self):
         '''Шаблон post_detail сформирован с правильным контекстом.'''
@@ -81,6 +124,9 @@ class PostViewsTests(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': self.post.pk}))
         expected = response.context['post']
         self.assertEqual(expected.pk, self.post.pk)
+        expected_2 = response.context['post']
+        image_in_post = expected_2.image
+        self.assertEqual(image_in_post, self.post.image)
 
     def test_create_edit_show_correct_context(self):
         '''Шаблон create_edit сформирован с правильным контекстом.'''
@@ -140,6 +186,16 @@ class PostViewsTests(TestCase):
                 form_field = response.context['page_obj']
                 self.assertNotIn(expected, form_field)
 
+    def test_post_detail_has_comment(self):
+        '''после успешной отправки комментарий появляется на странице поста'''
+        response = self.authorized_client.get(
+            reverse('posts:post_detail', kwargs={'post_id': self.post.id})
+        )
+        for comment in response.context['comments']:
+            if comment == self.comment:
+                self.assertEqual(comment, self.comment)
+
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
@@ -182,3 +238,4 @@ class PaginatorViewsTest(TestCase):
                 response = self.client.get(url + '?page=2')
                 self.assertEqual(len(response.context['page_obj']),
                                  REMAINING_POSTS)
+

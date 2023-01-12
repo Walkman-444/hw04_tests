@@ -26,15 +26,12 @@
                    <strong>{{ error|escape }}</strong>
               </div>
             {% endfor %}
-       {% endfor %}
-    {% endif %}
-        {% if is_edit %}
-          <form method="post" action="{% url 'posts:post_edit' post.pk %}">
-        {% else %}
-          <form method="post" action="{% url 'posts:post_create' %}">
-        {% endif %}              
+          {% endfor %}
+        {% endif %}
         
-        {% csrf_token %}  
+        <form method="post" enctype="multipart/form-data">
+        
+        {% csrf_token %}
 
         {% for field in form %}
         <div class="form-group row my-3 p-3">
