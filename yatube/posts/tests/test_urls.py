@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 
 from ..models import Group, Post
@@ -34,6 +35,9 @@ class PostURLTests(TestCase):
             'posts/profile.html': f"/profile/{cls.user}/",
             'posts/post_detail.html': f"/posts/{cls.post.pk}/",
         }
+
+    def setUp(self):
+        cache.clear()
 
     def test_home_page(self):
         '''Тестирование общедоступных страниц'''

@@ -3,6 +3,7 @@ import tempfile
 from django import forms
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -60,6 +61,9 @@ class PostViewsTests(TestCase):
             author=cls.user,
         )
         cls.author_client.force_login(cls.post.author)
+        
+    def setUp(self):
+        cache.clear()
 
     @classmethod
     def tearDownClass(cls):
@@ -195,6 +199,25 @@ class PostViewsTests(TestCase):
             if comment == self.comment:
                 self.assertEqual(comment, self.comment)
 
+    def test_cache(self):
+        new_post=Post.objects.create(
+            group=self.group,
+            author=self.user,
+            text=self.post.text
+        )
+        response = self.client.get(
+            reverse('posts:index')
+        )
+        new_post.delete()
+        response_2 = self.client.get(
+            reverse('posts:index')
+        )
+        self.assertEqual(response.content, response_2.content)
+        cache.clear()
+        response_3 = self.client.get(
+            reverse('posts:index')
+        )
+        self.assertNotEqual(response.content, response_3.content)
 
 
 class PaginatorViewsTest(TestCase):

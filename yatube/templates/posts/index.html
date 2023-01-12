@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Последние обновления на сайте{% endblock %}
 {% block content %}
+{% load cache %}
+{% cache 20 index_page %}
   {% for post in page_obj %}
   {% include 'includes/post_list.html' %}
     {% if post.group %}   
@@ -8,5 +10,6 @@
     {% endif %}
     {% if not forloop.last %}<hr>{% endif %}
   {% endfor %}
+  {% endcache %}
   {% include 'includes/paginator.html' %}
 {% endblock %} 
