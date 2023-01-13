@@ -1,6 +1,8 @@
+from core.models import CreatedModel
+
 from django.contrib.auth import get_user_model
 from django.db import models
-from core.models import CreatedModel
+
 
 User = get_user_model()
 
@@ -37,7 +39,7 @@ class Post(CreatedModel):
         help_text='Группа, к которой будет относиться пост'
     )
     image = models.ImageField(
-        verbose_name ='Картинка',
+        verbose_name='Картинка',
         upload_to='posts/',
         blank=True
     )
@@ -52,7 +54,7 @@ class Post(CreatedModel):
 
 
 class Comment(CreatedModel):
-    post=models.ForeignKey(
+    post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
@@ -76,3 +78,27 @@ class Comment(CreatedModel):
 
     def __str__(self):
         return self.text[:POSTS_COUNT]
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower',
+        verbose_name='Подписчик'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='Супер знаменитость',
+    )
+
+    def __str__(self):
+        return f'{self.user} подписан на {self.author}'
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['user', 'author'],
+            name='unique_following'),
+        ]

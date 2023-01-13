@@ -1,14 +1,15 @@
 import shutil
 import tempfile
+
 from django import forms
-from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post, Comment
+from ..models import Comment, Follow, Group, Post
 from ..views import POST_COUNT
 
 User = get_user_model()
@@ -18,14 +19,21 @@ REMAINING_POSTS = 3
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='HasNoName')
+        cls.user = User.objects.create_user(
+            username='HasNoName',
+        )
+        cls.user_2 = User.objects.create_user(
+            username='author',
+        )
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
         cls.author_client = Client()
+        cls.author_client.force_login(cls.user)
         cls.small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
@@ -61,7 +69,7 @@ class PostViewsTests(TestCase):
             author=cls.user,
         )
         cls.author_client.force_login(cls.post.author)
-        
+
     def setUp(self):
         cache.clear()
 
@@ -200,7 +208,8 @@ class PostViewsTests(TestCase):
                 self.assertEqual(comment, self.comment)
 
     def test_cache(self):
-        new_post=Post.objects.create(
+        '''проверка кеширования главной страницы'''
+        new_post = Post.objects.create(
             group=self.group,
             author=self.user,
             text=self.post.text
@@ -218,6 +227,55 @@ class PostViewsTests(TestCase):
             reverse('posts:index')
         )
         self.assertNotEqual(response.content, response_3.content)
+
+    def test_follow(self):
+        '''Авторизованный пользователь может подписываться
+        на других пользователей и удалять их из подписок'''
+        self.authorized_client.get(
+            reverse(
+                'posts:profile_follow', kwargs={'username': self.user_2})
+        )
+        self.assertEqual(
+            Follow.objects.filter(author=self.user_2).exists(),
+            True
+        )
+        self.authorized_client.get(reverse(
+            'posts:profile_unfollow', kwargs={'username': self.user_2})
+        )
+        self.assertEqual(
+            Follow.objects.filter(author=self.user_2).exists(),
+            False
+        )
+
+    def test_new_post_show(self):
+        '''Новая запись пользователя появляется в ленте тех,
+        кто на него подписан.
+        '''
+        Follow.objects.create(
+            user=self.user,
+            author=self.user_2,
+        )
+        post = Post.objects.create(
+            text='Тестовый пост',
+            author=self.user_2
+        )
+        response_auth = self.authorized_client.get(
+            reverse('posts:follow_index')
+        ).context['page_obj']
+        self.assertIn(post, response_auth)
+
+    def test_new_post_not_show(self):
+        '''Новая запись не появляется в ленте тех,
+        кто не подписан.
+        '''
+        post = Post.objects.create(
+            text='Тестовый пост',
+            author=self.user_2
+        )
+        response_not_auth = self.authorized_client.get(
+            reverse('posts:follow_index')
+        ).context['page_obj']
+        self.assertNotIn(post, response_not_auth)
 
 
 class PaginatorViewsTest(TestCase):
@@ -261,4 +319,3 @@ class PaginatorViewsTest(TestCase):
                 response = self.client.get(url + '?page=2')
                 self.assertEqual(len(response.context['page_obj']),
                                  REMAINING_POSTS)
-

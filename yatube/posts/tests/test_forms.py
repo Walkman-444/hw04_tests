@@ -1,12 +1,13 @@
 import shutil
 import tempfile
-from django.contrib.auth import get_user_model
+
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post, Comment
+from ..models import Comment, Group, Post
 
 User = get_user_model()
 
@@ -83,6 +84,7 @@ class PostFormsTests(TestCase):
                 image=form_data['image'],
             ).exists()
         )
+
     def test_post_edit(self):
         '''при отправке валидной формы со страницы
         редактирования поста происходит изменение поста
@@ -113,8 +115,8 @@ class PostFormsTests(TestCase):
         response = self.authorized_client.post(
             reverse(
                 'posts:add_comment', args=(self.post.pk,)),
-                data=comment_data,
-                follow=True
+            data=comment_data,
+            follow=True
         )
         last_comment = response.context['comments'][0]
         self.assertRedirects(

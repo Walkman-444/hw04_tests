@@ -10,14 +10,14 @@
       </li>
       {% if post.group %}
         <li class="list-group-item">
-          Группа: {{ group }}
+          Группа: {{ post.group }}
           <a href="{% url 'posts:group_list' post.group.slug %}">
             Все записи группы
           </a>
       {% endif %}
       </li>
       <li class="list-group-item">
-        Автор: {{ post.author.get_full_name }}
+        Автор: {{ post.author.username }}
       </li>
       <li class="list-group-item d-flex justify-content-between align-items-center">
         Всего постов автора: {{ post.author.posts.count }}
